@@ -1,0 +1,180 @@
+---
+title: "Felix-Scratchwork"
+author: "Felix Ngo"
+date: "2026-11-03"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(tidytext)
+
+library(textstem)
+library(rvest)
+library(qdapRegex)
+library(stopwords)
+library(tokenizers)
+library(dplyr)
+
+load('../../data/claims-raw.RData')
+load('../../data/claims-clean-example.RData')
+
+
+claims_raw %>%
+  head(5) %>%
+  filter(str_detect(text_tmp, '<!')) %>%
+  rowwise() 
+  # read_html(text_tmp)
+  # mutate(text_clean = ) %>%
+  # unnest(text_clean) |>
+  # select(text_tmp, text_clean) |>
+  # pull(text_clean) |>
+  # pluck(1)
+claims_clean |>
+  head(5)
+```
+
+
+
+```{r preprocessing}
+# function to parse html and clean text
+
+  parse_fn <- function(.html){
+    read_html(.html) %>%
+      html_elements('p') %>%
+      html_text2() %>%
+      str_c(collapse = ' ') %>%
+      rm_url() %>%
+      rm_email() %>%
+      str_remove_all('\'') %>%
+      str_replace_all(paste(c('\n', 
+                              '[[:punct:]]', 
+                              'nbsp', 
+                              '[[:digit:]]', 
+                              '[[:symbol:]]'),
+                            collapse = '|'), ' ') %>%
+      str_replace_all("([a-z])([A-Z])", "\\1 \\2") %>%
+      tolower() %>%
+      str_replace_all("\\s+", " ")
+  }
+
+  
+  # function to apply to claims data
+  parse_data <- function(.df){
+    out <- .df %>%
+      filter(str_detect(text_tmp, '<!')) %>%
+      rowwise() %>%
+      mutate(text_clean = parse_fn(text_tmp)) %>%
+      unnest(text_clean) 
+    return(out)
+  }
+
+nlp_fn <- function(parse_data.out){
+  out <- parse_data.out %>% 
+    unnest_tokens(output = token, 
+                  input = text_clean, 
+                  token = 'words',
+                  stopwords = str_remove_all(stop_words$word, 
+                                             '[[:punct:]]')) %>%
+    mutate(token.lem = lemmatize_words(token)) %>%
+    filter(str_length(token.lem) > 2) %>%
+    count(.id, bclass, token.lem, name = 'n') %>%
+    bind_tf_idf(term = token.lem, 
+                document = .id,
+                n = n) %>%
+    pivot_wider(id_cols = c('.id', 'bclass'),
+                names_from = 'token.lem',
+                values_from = 'tf_idf',
+                values_fill = 0)
+  return(out)
+}
+```
+
+```{r }
+#Augment the HTML scraping strategy so that header information is captured in addition to paragraph content. Are binary class predictions improved using logistic principal component regression?
+
+# second fn to include headers
+ parse_fn2 <- function(.html){
+    read_html(.html) %>%
+      html_elements('h1, p') %>%
+      html_text2() %>%
+      str_c(collapse = ' ') %>%
+      rm_url() %>%
+      rm_email() %>%
+      str_remove_all('\'') %>%
+      str_replace_all(paste(c('\n', 
+                              '[[:punct:]]', 
+                              'nbsp', 
+                              '[[:digit:]]', 
+                              '[[:symbol:]]'),
+                            collapse = '|'), ' ') %>%
+      str_replace_all("([a-z])([A-Z])", "\\1 \\2") %>%
+      tolower() %>%
+      str_replace_all("\\s+", " ")
+ }
+
+  parse_data2 <- function(.df){
+    out <- .df %>%
+      filter(str_detect(text_tmp, '<!')) %>%
+      mutate(text_clean = map_chr(text_tmp, parse_fn2)) %>%
+      unnest(text_clean) 
+    return(out)
+  }
+# claims with the header included
+claims_raw %>%
+  head(1) %>%
+  filter(str_detect(text_tmp, '<!')) %>%
+  rowwise() %>%
+  mutate(text_clean = parse_fn2(text_tmp)) %>%
+  unnest(text_clean) |>
+  select(text_tmp, text_clean) |>
+  pull(text_clean) |>
+  pluck(1)
+
+claims_clean_hp <- claims_clean <- claims_raw %>%
+  parse_data2()
+
+# 
+nchar(claims_raw$text_tmp[1270])
+nchar(claims_clean$text_tmp[1270])
+# Logistic principal component regression
+claims_clean <- claims_raw %>%
+  parse_data()
+## LOGISTIC REGRESSION
+#######################
+
+# select subset of interest
+proteins_sstar <- intersect(proteins_s1, proteins_s2)
+
+biomarker_sstar <- biomarker_clean %>%
+  select(group, any_of(proteins_sstar)) %>%
+  mutate(class = (group == 'ASD')) %>%
+  select(-group)
+
+# partition into training and test set
+set.seed(101422)
+biomarker_split <- biomarker_sstar %>%
+  initial_split(prop = 0.8)
+
+# fit logistic regression model to training set
+fit <- glm(class ~ ., 
+           data = training(biomarker_split), 
+           family = 'binomial')
+
+# evaluate errors on test set
+class_metrics <- metric_set(sensitivity, 
+                            specificity, 
+                            accuracy,
+                            roc_auc)
+
+testing(biomarker_split) %>%
+  add_predictions(fit, type = 'response') %>% 
+  mutate(estimate = factor(pred >0.5, levels = c(FALSE, TRUE)),
+         truth = factor(class, levels = c(FALSE, TRUE))) %>%
+  class_metrics(estimate = estimate,
+                truth = truth, pred,
+                event_level = 'second')
+
+```
+
