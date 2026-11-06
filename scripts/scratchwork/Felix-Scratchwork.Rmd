@@ -9,17 +9,18 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(tidytext)
-
 library(textstem)
 library(rvest)
 library(qdapRegex)
 library(stopwords)
 library(tokenizers)
 library(dplyr)
+library(rsample)
+library(sparsesvd)
 
 load('../../data/claims-raw.RData')
 load('../../data/claims-clean-example.RData')
-
+load('../../data/claims-clean-task1.RData')
 
 claims_raw %>%
   head(5) %>%
@@ -114,13 +115,16 @@ nlp_fn <- function(parse_data.out){
       str_replace_all("\\s+", " ")
  }
 
-  parse_data2 <- function(.df){
-    out <- .df %>%
-      filter(str_detect(text_tmp, '<!')) %>%
-      mutate(text_clean = map_chr(text_tmp, parse_fn2)) %>%
-      unnest(text_clean) 
-    return(out)
-  }
+  # parse_data2 <- function(.df){
+  #   out <- .df %>%
+  #     filter(str_detect(text_tmp, '<!')) %>%
+  #     mutate(text_clean = map_chr(text_tmp, parse_fn2)) %>%
+  #     unnest(text_clean) 
+  #   return(out)
+  # }
+
+
+  
 # claims with the header included
 claims_raw %>%
   head(1) %>%
@@ -129,37 +133,95 @@ claims_raw %>%
   mutate(text_clean = parse_fn2(text_tmp)) %>%
   unnest(text_clean) |>
   select(text_tmp, text_clean) |>
-  pull(text_clean) |>
-  pluck(1)
+  pull(text_clean) 
 
-claims_clean_hp <- claims_clean <- claims_raw %>%
-  parse_data2()
+  parse_data2 <- function(.df, chunk_size = 250){
+    safe_parse <- possibly(parse_fn2, otherwise = NA_character_)
 
-# 
-nchar(claims_raw$text_tmp[1270])
-nchar(claims_clean$text_tmp[1270])
-# Logistic principal component regression
-claims_clean <- claims_raw %>%
-  parse_data()
+  .df <- .df %>% filter(str_detect(text_tmp, '<!'))
+
+  # create a list of row-number vectors to index data
+  # seq_len(nrow(.df)) gives the vector of row numbers
+  # chunk_size is 250
+  # ceiling(seq_len(nrow(.df)) / chunk_size) splits the sequence of rows into chunks of 250 and ceiling rounds up to next whole number
+  # split(x,f) divides the vector x into a list, one element per distinct label in f
+  # so idx is a list of integer vectors which correspond to the row numbers of the data
+  idx <- split(seq_len(nrow(.df)), ceiling(seq_len(nrow(.df)) / chunk_size))
+
+  text_clean <- vector("list", length(idx)) # this creates an empty list with one slot per chunk
+  
+  for (i in seq_along(idx)) { # iterate along the chunks 
+    # for every i chunk, map the safe_parse function to the rows pulled by the corresponding chunk
+    text_clean[[i]] <- map_chr(.df$text_tmp[idx[[i]]], safe_parse) 
+    gc() # refresh memory
+  }
+  
+  # create text_clean column by unlisting the text_clean list and storing
+  .df$text_clean <- unlist(text_clean)
+  .df
+}
+
+# claims_clean_hp <- parse_data2(claims_raw)
+
+
+# filter out NA clean texts
+# claims_clean2 <- claims_clean_hp |> filter_out(is.na(text_clean))
+```
+
+```{r log regression}
 ## LOGISTIC REGRESSION
 #######################
 
 # select subset of interest
-proteins_sstar <- intersect(proteins_s1, proteins_s2)
-
-biomarker_sstar <- biomarker_clean %>%
-  select(group, any_of(proteins_sstar)) %>%
-  mutate(class = (group == 'ASD')) %>%
-  select(-group)
-
 # partition into training and test set
+
+
+# pull the stop words from tidy text
+stpwrd <- stop_words |>
+  pull(word) |> 
+  str_remove_all('[[:punct:]]')
+
+claims_dtm <- claims_clean2 |>
+  select(.id, bclass, mclass, text_clean) |>
+  unnest_tokens(output = token, input = text_clean, token = 'words', stopwords = stpwrd) |>
+  mutate(token = lemmatize_words(token)) |>
+  count(.id, token) |>
+  bind_tf_idf(term = token, document = .id, n = n) |>
+  pivot_wider(id_cols = .id, names_from = token, values_from = tf_idf, values_fill = 0) 
+
+claims_new <- claims_clean2 |>
+  select(.id, bclass, mclass) |>
+  inner_join(claims_dtm, by = ".id")
+
 set.seed(101422)
-biomarker_split <- biomarker_sstar %>%
+claims_split <- claims_new %>%
   initial_split(prop = 0.8)
 
+
+test_dtm <- testing(claims_split) %>%
+  select(-.id, -bclass, -mclass)
+test_labels <- testing(claims_split) %>%
+  select(.id, bclass, mclass)
+
+# same, training set
+train_dtm <- training(claims_split) %>%
+  select(-.id, -bclass, -mclass)
+train_labels <- training(claims_split) %>%
+  select(.id, bclass, mclass)
+
+train_dtm |> head(5)
+train_dtm_test <- train_dtm[1:1000]
+
+# find projections based on training data
+proj_out <- projection_fn(.dtm = train_dtm, .prop = 0.7) # this code will capture 70%
+train_dtm_projected <- proj_out$data
+
+# how many components were used?
+proj_out$n_pc
+
 # fit logistic regression model to training set
-fit <- glm(class ~ ., 
-           data = training(biomarker_split), 
+fit <- glm(bclass ~ ., 
+           data = training(claims_split), 
            family = 'binomial')
 
 # evaluate errors on test set
