@@ -1,7 +1,7 @@
 require(tidyverse)
 require(keras)
 require(tensorflow)
-load('data/claims-test.RData')
+load('data/claim-test.RData')
 load('data/claims-raw.RData')
 source('scripts/preprocessing.R')
 tf_model <- load_model_tf('results/example-model')
