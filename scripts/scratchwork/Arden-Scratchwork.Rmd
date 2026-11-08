@@ -1,0 +1,220 @@
+---
+title: "Arden-Scratchwork"
+output: html_document
+---
+
+My scratchwork for task 2
+
+(NOTE: I started this before I realized task 2 was done by someone else. I am leaving this code here for reference.)
+
+Notes:
+
+* In my analysis used stratified sampling (line 32)
+* included lemmatization
+* Line 112 filtered for words that appear in more than 5 documents, can change it later
+
+```{r load and split}
+library(kableExtra)
+library(tidyverse)
+library(rsample)
+
+# Load in task 1 cleaned data, simple data checks
+load("../../data/claims-clean-task1.RData")
+
+task2 <- claims_clean2
+colnames(task2)
+unique(task2$bclass)
+class(task2$bclass)
+
+# Split into train and test set
+set.seed(101422)
+claims_split <- initial_split(
+  task2,
+  prop = 0.8,
+  strata = bclass
+)
+
+claims_train <- training(claims_split)
+claims_test <- testing(claims_split)
+
+# Check the sizes and class balance.
+bind_rows(
+  claims_train %>% count(bclass) %>% mutate(dataset = "Training"),
+  claims_test %>% count(bclass) %>% mutate(dataset = "Test")
+) %>%
+  select(dataset, everything())
+```
+
+```{r word features}
+# Load preprocessing code
+source("../preprocessing.R")
+
+word_counts_fn <- function(.df) {
+  .df |> 
+    ungroup() |> 
+    select(.id, text_clean) |> 
+    
+    # Split text into words and remove stopwords
+    unnest_tokens(
+      output = token,
+      input = text_clean,
+      token = "words",
+      stopwords = str_remove_all(
+        tidytext::stop_words$word,
+        "[[:punct:]]"
+      )
+    ) |> 
+    
+    # Convert related word forms to their dictionary form
+    mutate(token.lem = textstem::lemmatize_words(token)) |> 
+    filter(str_length(token.lem) > 2) |> 
+    
+    # Count each word within each webpage
+    count(.id, token.lem, name = "n")
+}
+
+word_counts_train <- word_counts_fn(claims_train)
+word_counts_test <- word_counts_fn(claims_test)
+```
+
+```{r word checks}
+word_counts_train |> slice_head(n = 10)
+
+# Summarize tokenization.
+tibble(
+  dataset = c("Training", "Test"),
+  pages_with_words = c(
+    n_distinct(word_counts_train$.id),
+    n_distinct(word_counts_test$.id)
+  ),
+  distinct_words = c(
+    n_distinct(word_counts_train$token.lem),
+    n_distinct(word_counts_test$token.lem)
+  )
+)
+
+# Identify pages that lost all words during filtering.
+empty_word_pages_train <- claims_train %>%
+  anti_join(word_counts_train %>% distinct(.id), by = ".id")
+
+empty_word_pages_test <- claims_test %>%
+  anti_join(word_counts_test %>% distinct(.id), by = ".id")
+
+c(
+  training_pages_without_words = nrow(empty_word_pages_train),
+  test_pages_without_words = nrow(empty_word_pages_test)
+)
+```
+
+```{r learn vocab}
+library(Matrix)
+
+word_vocab <- word_counts_train |> 
+  distinct(.id, token.lem) |> 
+  count(token.lem, name = "document_frequency") |> 
+#  filter(document_frequency >= 5) |> # retain words found in at least 5 pages to make PCA more manageable
+  arrange(token.lem) |> 
+  mutate(
+    idf = log(nrow(claims_train) / document_frequency)
+  )
+
+nrow(word_vocab)
+```
+
+```{r TF-IDF matrix}
+make_word_tfidf <- function(counts, page_ids, vocabulary){
+  
+  weighted_counts <- counts |> 
+    group_by(.id) |> 
+    mutate(tf = n / sum(n)) |> 
+    ungroup() |> 
+    inner_join(
+      vocabulary |> select(token.lem, idf),
+      by = "token.lem"
+    ) |> 
+    mutate(tf_idf = tf * idf)
+  
+  # Rows are page ids, columns are training vocab
+  Matrix::sparseMatrix(
+    i = match(weighted_counts$.id, page_ids),
+    j = match(weighted_counts$token.lem, vocabulary$token.lem),
+    x = weighted_counts$tf_idf,
+    dims = c(length(page_ids), nrow(vocabulary)),
+    dimnames = list(page_ids, vocabulary$token.lem)
+  )
+}
+
+word_x_train <- make_word_tfidf(
+  counts = word_counts_train,
+  page_ids = claims_train$.id,
+  vocabulary = word_vocab
+)
+
+word_x_test <- make_word_tfidf(
+  counts = word_counts_test,
+  page_ids = claims_test$.id,
+  vocabulary = word_vocab
+)
+
+tibble(
+  dataset = c("Training", "Test"),
+  webpages = c(nrow(word_x_train), nrow(word_x_test)),
+  word_features = c(ncol(word_x_train), ncol(word_x_test)),
+  zero_feature_pages = c(
+    sum(Matrix::rowSums(word_x_train) == 0),
+    sum(Matrix::rowSums(word_x_test) == 0)
+  )
+)
+
+# Preview a small section without printing the full matrix.
+as.matrix(word_x_train[1:5, 1:min(6, ncol(word_x_train))])
+```
+
+```{r activity projection functions}
+library(sparsesvd)
+
+# path to activity files on repo
+url <- 'https://raw.githubusercontent.com/pstat197/pstat197a/main/materials/activities/data/'
+
+# load a few functions for the activity
+source(paste(url, 'projection-functions.R', sep = ''))
+```
+
+```{r project datasets}
+word_proj_out <- projection_fn(
+  .dtm = word_x_train,
+  .prop = 0.8
+)
+
+word_train_projected <- word_proj_out$data
+
+word_test_projected <- reproject_fn(
+  .dtm = word_x_test,
+  .projection_fn_out = word_proj_out
+)
+
+dim(word_train_projected)
+dim(word_test_projected)
+```
+
+```{r word-only logistic regression}
+word_train_model <- claims_train |> 
+  select(bclass) |> 
+  bind_cols(word_train_projected)
+
+word_fit <- glm(
+  bclass ~ .,
+  data = word_train_model,
+  family = binomial()
+)
+
+# Check fitting results
+tibble(
+  converged = word_fit$converged,
+  iterations = word_fit$iter,
+  estimated_rank = word_fit$rank,
+  coefficients_including_intercept = length(coef(word_fit)),
+  missing_coefficients = sum(is.na(coef(word_fit)))
+)
+```
+
