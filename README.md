@@ -46,7 +46,7 @@ We have provided a collection of unlabeled pages for you to classify. Once proje
 
 1.  Develop the best predictive model you can for (a) binary classification and also for (b) the multi-class setting. You can use any preprocessing and any modeling technique you like, including ones not discussed in class (consider exploring RNN or SVM). Export a deployable copy of each model and a set of predictions from each model on the test data `claims-test.RData`. Predictions should be formatted as a single data frame named `pred_df` with columns
 
-    -    `.id` containing the URL ID
+    -   `.id` containing the URL ID
 
     -   `bclass.pred` containing the predicted label for the binary class setting
 
