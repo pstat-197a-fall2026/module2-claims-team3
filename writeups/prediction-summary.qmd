@@ -1,37 +1,25 @@
 ---
-title: "Predictive modeling of claims status"
-author: 'YOUR NAMES HERE'
+title: "Task 4(b): Multiclass webpage classification"
 date: today
+format: html
 ---
-
-### Abstract
-
-Provide a 3-5 sentence summary of your work on the primary task. Indicate what input data was used, what method was used for binary class predictions, what method was used for multiclass predictions, and what estimated accuracies were achieved.
-
-> *Header and paragraph content was scraped from the raw webpages and processed into term frequencies of word tokens. For binary classification, a two-layer neural network yielded an estimated 81.4% accuracy; for multiclass classification, a support vector machine gave 78% accuracy.*
 
 ### Preprocessing
 
-In one paragraph lay out your preprocessing pipeline. No need to provide exact step-by-step detail; just give an overview of the main components:
+We modeled the cleaned paragraph text extracted from the labeled webpages. URLs, email addresses, punctuation, and digits were removed; text was lowercased and whitespace was normalized. A TF-IDF vectorizer represented each page using word unigrams and bigrams, with sublinear term-frequency scaling.
 
--   what text content was extracted from HTML
-
--   how text was cleaned
-
--   how cleaned text was represented quantitatively
-
-### Methods
-
-Describe your final predictive models. Include one paragraph with details on the binary classification approach, and one on the multiclass approach. Include for each:
-
--   what ML/statistical method was used
-
--   model specification and hyperparameter selection
-
--   training method
+We compared logistic regression, a linear support vector classifier (SVM), and multinomial Naive Bayes using the same TF-IDF features. On a stratified 80/20 split (1,712 training pages and 428 validation pages; random seed 42), their validation accuracies were 78.5%, 81.3%, and 71.3%, respectively. We selected the linear SVM with class-balanced weights; the vectorizer used a minimum document frequency of one, and the SVM used its default regularization setting. The reported results are holdout estimates, not performance on the unlabeled prediction set.
 
 ### Results
 
-Indicate the predictive accuracy of the binary classifications and the multiclass classifications. Provide a table for each, and report sensitivity, specificity, and accuracy.[^1]
+The selected SVM correctly classified 348 of 428 validation pages (81.3% accuracy; macro-F1 73.8%). The table reports one-vs-rest sensitivity, specificity, and accuracy for each class. The lower sensitivity for “Other claim content” and “Physical Activity” indicates that those categories were more difficult to identify; the former had only 20 validation examples.
 
-[^1]: Read [this article](https://yardstick.tidymodels.org/articles/multiclass.html) on multiclass averaging.
+| Class | Validation pages | Sensitivity | Specificity | One-vs-rest accuracy |
+|:--|--:|--:|--:|--:|
+| N/A: No relevant content. | 203 | 82.3% | 82.7% | 82.5% |
+| Other claim content | 20 | 40.0% | 97.3% | 94.6% |
+| Physical Activity | 47 | 59.6% | 97.6% | 93.5% |
+| Possible Fatality | 88 | 90.9% | 95.9% | 94.9% |
+| Potentially unlawful activity | 70 | 92.9% | 98.0% | 97.2% |
+
+Overall multiclass accuracy is the proportion of pages assigned the correct one of five labels. The class-specific measures treat each label as positive and all other labels as negative; therefore, one-vs-rest accuracy is distinct from overall multiclass accuracy.
