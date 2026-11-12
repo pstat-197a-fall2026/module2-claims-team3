@@ -1,6 +1,6 @@
 ---
 title: "Predictive modeling of claims status"
-author: 'YOUR NAMES HERE'
+author: 'Lily Nishizawa and Emma Nguyen'
 date: today
 format: html
 ---
@@ -11,7 +11,7 @@ Provide a 3-5 sentence summary of your work on the primary task. Indicate what i
 
 > *Template example—replace with the team's final summary: Header and paragraph content was scraped from the raw webpages and processed into term frequencies of word tokens. For binary classification, a two-layer neural network yielded an estimated 81.4% accuracy; for multiclass classification, a support vector machine gave 78% accuracy.*
 
-**Multiclass contribution:** On a stratified 80/20 holdout split, the selected TF-IDF linear SVM achieved 81.3% accuracy across five webpage classes. **Binary contribution:** [Team member: complete this part.]
+**Multiclass contribution:** On a stratified 80/20 holdout split, the selected TF-IDF linear SVM achieved 81.3% accuracy across five webpage classes. **Binary contribution:** For binary classification, a one hidden layer neural network yielded an estimated 83.2% accuracy in identifying relevant versus irrelevant pages.
 
 ### Preprocessing
 
@@ -23,7 +23,11 @@ In one paragraph lay out your preprocessing pipeline. No need to provide exact s
 
 -   how cleaned text was represented quantitatively
 
-**Multiclass contribution:** The model used cleaned paragraph text from labeled webpages. URLs, email addresses, punctuation, and digits were removed; text was lowercased and whitespace normalized. A TF-IDF vectorizer represented each page using word unigrams and bigrams with sublinear term-frequency scaling. **Binary contribution:** [Team member: add or confirm the preprocessing details for the binary model.]
+\<WE CAN COMBINE THESE\>
+
+**Multiclass contribution:** The model used cleaned paragraph text from labeled webpages. URLs, email addresses, punctuation, and digits were removed; text was lowercased and whitespace normalized. A TF-IDF vectorizer represented each page using word unigrams and bigrams with sublinear term-frequency scaling.
+
+**Binary contribution:** Text was extracted and cleaned following the \`parse_fn\` and \`parse_data\` functions in \`preprocessing.R\`, rewritten in Python. Pages without valid HTML were removed, and text was extracted from paragraph elements after discarding scripts and style content. The text was cleaned by removing URLs, email addresses, punctuation, and digits, separating words that were joined together without spaces, converting to lowercase, and collapsing white spaces. Cleaned text was represented as TF-IDF weights over the 5,000 most frequent words, excluding English stop words and words appearing in fewer than two pages. The vocabulary and weights were learned from the training pages only and then applied to the validation and test pages.
 
 ### Methods
 
@@ -35,7 +39,7 @@ Describe your final predictive models. Include one paragraph with details on the
 
 -   training method
 
-**Binary classification:** [Team member: describe the final binary model, model selection, and training.]
+**Binary classification:** The final prediction model for binary classfication is a feed-forward neural network with one hidden layer of 64 neurond, dropout of 0.5, and a single sigmoid output giving the probability that a page is irrelevant. The labeled data were split into 80% training and 20% validation, stratified by class. The hyperparameters (hidden units, dropout rate, learning rate, and number of epochs) were chosen by doing a grid search over 24 different combinations, selecting the one with the highest validation AUC. The final model with the best parameters was trained with the Adam optimizer with a learning rate of 0.001 on binary cross-entropy loss for 10 epochs with a batch size of 32. Pages with a predicted probability above 0.5 were labeled irrelevant.
 
 **Multiclass classification:** We compared logistic regression, a linear support vector classifier (SVM), and multinomial Naive Bayes using the same TF-IDF features. On a stratified 80/20 split (1,712 training pages and 428 validation pages; random seed 42), their validation accuracies were 78.5%, 81.3%, and 71.3%, respectively. We selected the linear SVM with class-balanced weights; the vectorizer used a minimum document frequency of one, and the SVM used its default regularization setting. The final model was then fit on all labeled pages.
 
@@ -43,12 +47,19 @@ Describe your final predictive models. Include one paragraph with details on the
 
 Indicate the predictive accuracy of the binary classifications and the multiclass classifications. Provide a table for each, and report sensitivity, specificity, and accuracy.
 
-**Binary classification:** [Team member: add the binary results table.]
+**Binary classification:** The selected neural network correctly classified 328 of 394 validation pages, having a 83.2% accuracy (AUC 0.92). The table below reports sensitivity, specificity, and accuracy with each class treated as positive. Sensitivity was higher for "Relevant claim content" than for "N/A: No relevant content", indicating the model more reliably identified relevant pages. The most errors were irrelevant pages labeled as relevant (40/179).
+
+| Class | Number of Validation pages | Sensitivity | Specificity | Accuracy |
+|:---------------|-------------:|-------------:|-------------:|-------------:|
+| Relevant claim content | 215 | 87.9% | 77.7% | 83.2% |
+| N/A: No relevant content | 179 | 77.7% | 87.9% | 83.2% |
+
+: With only two classes, one class's sensitivity is the specificity for the other and accuracy is the same for both. Overall, the model identified relevant pages more reliably than irrelevant ones, with the most errors being where irrelevant pages were labeled as relevant.
 
 **Multiclass classification:** The selected SVM correctly classified 348 of 428 validation pages (81.3% accuracy; macro-F1 73.8%). The class-specific measures below treat each label as positive and all other labels as negative.
 
 | Class | Validation pages | Sensitivity | Specificity | One-vs-rest accuracy |
-|:--|--:|--:|--:|--:|
+|:--------------|--------------:|--------------:|--------------:|--------------:|
 | N/A: No relevant content. | 203 | 82.3% | 82.7% | 82.5% |
 | Other claim content | 20 | 40.0% | 97.3% | 94.6% |
 | Physical Activity | 47 | 59.6% | 97.6% | 93.5% |
