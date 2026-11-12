@@ -43,4 +43,7 @@ Indicate the predictive accuracy of the binary classifications and the multiclas
 | Relevant claim content | 215 | 87.9% | 77.7% | 83.2% |
 | N/A: No relevant content | 179 | 77.7% | 87.9% | 83.2% |
 
-With only two classes, one class's sensitivity is the specificity for the other and accuracy is the same for both. Overall, the model identified relevant pages more reliably than irrelevant ones, with the most errors being where irrelevant pages were labeled as relevant.
+With only two classes, one class's sensitivity is the specificity for the other and accuracy is the same for both. Overall, the model identified relevant pages more reliably than irrelevant ones, with the most errors being where irrelevant pages were labeled as relevant. 
+
+In comparison to the same model but with different hyperparameters (30%, 5 epochs, 16 hidden nuerons, 0.0001 learning rate), the validation AUC for this model was 0.896. 
+
