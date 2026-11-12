@@ -41,7 +41,7 @@ Describe your final predictive models. Include one paragraph with details on the
 
 ### Results
 
-Indicate the predictive accuracy of the binary classifications and the multiclass classifications. Provide a table for each, and report sensitivity, specificity, and accuracy.[^1]
+Indicate the predictive accuracy of the binary classifications and the multiclass classifications. Provide a table for each, and report sensitivity, specificity, and accuracy.
 
 **Binary classification:** [Team member: add the binary results table.]
 
@@ -56,5 +56,3 @@ Indicate the predictive accuracy of the binary classifications and the multiclas
 | Potentially unlawful activity | 70 | 92.9% | 98.0% | 97.2% |
 
 Overall multiclass accuracy is the proportion of pages assigned the correct one of five labels. One-vs-rest accuracy is calculated separately for each class and is distinct from overall multiclass accuracy. “Other claim content” had only 20 validation examples and the lowest sensitivity (40.0%).
-
-[^1]: Read [this article](https://yardstick.tidymodels.org/articles/multiclass.html) on multiclass averaging.
