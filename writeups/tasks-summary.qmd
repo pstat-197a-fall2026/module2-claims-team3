@@ -10,7 +10,6 @@ We created a principal component logistic regression model trained on a corpus w
 
 ### Bigrams
 
-
 Another model, which was trained on the output principal components of another model trained on bigram tokenized data of paragraph text and headers as well as the log-odds-ratios of the previous unigram model, tied with the previous unigram model trained on paragraphs and headers in the accuracy score (0.8364) but improved in the ROC AUC score (0.8988). Its sensitivity and specificity score was lower than the unigram model that was trained on only paragraph text (0.8498 vs 0.8592 and 0.8233 vs 0.8465 for sensitivity and specificity respectively). In comparison to the unigram model trained on paragraph and header text, the bigram model had a lower sensitivity score (0.8498 vs 0.8545) and a higher specificity score (0.8233 vs 0.8186). This indicates that the bigram model is more conservative in flagging relevant claims compared to both unigram models, and misclassifies less irrelevant claims than the unigram model trained with paragraphs and headers.
 
 The SVD logistic regression model that scored the highest accuracy was the model trained only with paragraph text (0.8528), but was beat by the bigram model trained on paragraph and header text in terms of ROC AUC score (0.8988). Thus, the inclusion of headers and bigrams captured additional information to better classify between irrelevant and relevant claims at the cost of raw accuracy.
@@ -21,4 +20,11 @@ We trained a feedforward neural network to predict whether a webpage contained r
 
 We tested and evaluated different hidden-layer widths, regularization strengths, and training durations (number of training epochs) on a validation set. The selected configuration achieved 83.38% validation accuracy after five epochs, compared with 80.76% for the initial 100-epoch run. We then refit the TF-IDF transformation and trained the selected network for five epochs on all 1,712 training pages.
 
-On the same 428 held-out pages used in Task 1, the network correctly classified 358 pages (83.64%), compared with 354 (82.71%) for the principal component logistic regression model. Additionally, ROC AUC increased from 0.8934 to 0.9010. The network met the Task 3 accuracy target, with a gain of 0.93 percentage points on this test split.
+On the same 428 held-out pages used in Task 1, the network correctly classified 358 pages (83.64%), compared with 354 (82.71%) for the principal component logistic regression model. Additionally, ROC AUC increased from 0.8934 to 0.9010. The network met the Task 3 accuracy target, with a gain of 0.93 percentage points on this test split. Below is a table which compares model metrics.
+
+|             | Task 1 PC Logistic Regression | Task 3 Neural Network |
+|-------------|-------------------------------|-----------------------|
+| Accuracy    | 0.8271                        | 0.8364                |
+| AUC ROC     | 0.8934                        | 0.9010                |
+| Sensitivity | 0.8404                        | 0.8451                |
+| Specificity | 0.8140                        | 0.8279                |
