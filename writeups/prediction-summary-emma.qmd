@@ -1,0 +1,46 @@
+---
+title: "Binary Classification 4a Task"
+author: 'Emma Nguyen'
+date: today
+---
+
+### Abstract
+
+Provide a 3-5 sentence summary of your work on the primary task. Indicate what input data was used, what method was used for binary class predictions, what method was used for multiclass predictions, and what estimated accuracies were achieved.
+
+> *Header and paragraph content was scraped from the raw webpages and processed into term frequencies of word tokens. For binary classification, a one hidden layer neural network yielded an estimated 83.2% accuracy; for multiclass classification, \<\>.*
+
+### Preprocessing
+
+In one paragraph lay out your preprocessing pipeline. No need to provide exact step-by-step detail; just give an overview of the main components:
+
+-   Text was extracted and cleaned following the \`parse_fn\` and \`parse_data\` functions in \`preprocessing.R\`, rewritten in Python. Pages without valid HTML were removed, and text was extracted from paragraph elements after discarding scripts and style content. The text was cleaned by removing URLs, email addresses, punctuation, and digits, separating words that were joined together without spaces, converting to lowercase, and collapsing white spaces. Cleaned text was represented as TF-IDF weights over the 5,000 most frequent words, excluding English stop words and words appearing in fewer than two pages. The vocabulary and weights were learned from the training pages only and then applied to the validation and test pages.
+
+### Methods
+
+Describe your final predictive models. Include one paragraph with details on the binary classification approach, and one on the multiclass approach. Include for each:
+
+-   what ML/statistical method was used
+
+-   model specification and hyperparameter selection
+
+-   training method
+
+**Binary classification:**
+
+-   The final prediction model for binary classfication is a feed-forward neural network with one hidden layer of 64 neurond, dropout of 0.5, and a single sigmoid output giving the probability that a page is irrelevant. The labeled data were split into 80% training and 20% validation, stratified by class. The hyperparameters (hidden units, dropout rate, learning rate, and number of epochs) were chosen by doing a grid search over 24 different combinations, selecting the one with the highest validation AUC. The final model with the best parameters was trained with the Adam optimizer with a learning rate of 0.001 on binary cross-entropy loss for 10 epochs with a batch size of 32. Pages with a predicted probability above 0.5 were labeled irrelevant.
+
+### Results
+
+Indicate the predictive accuracy of the binary classifications and the multiclass classifications. Provide a table for each, and report sensitivity, specificity, and accuracy.[^1]
+
+[^1]: Read [this article](https://yardstick.tidymodels.org/articles/multiclass.html) on multiclass averaging.
+
+**Binary Classification:** The selected neural network correctly classified 328 of 394 validation pages, having a 83.2% accuracy (AUC 0.92). The table below reports sensitivity, specificity, and accuracy with each class treated as positive. Sensitivity was higher for "Relevant claim content" than for "N/A: No relevant content", indicating the model more reliably identified relevant pages. The most errors were irrelevant pages labeled as relevant (40/179).
+
+| Class | Number of Validation pages | Sensitivity | Specificity | Accuracy |
+|:------------------|-------------:|-------------:|-------------:|-------------:|
+| Relevant claim content | 215 | 87.9% | 77.7% | 83.2% |
+| N/A: No relevant content | 179 | 77.7% | 87.9% | 83.2% |
+
+With only two classes, one class's sensitivity is the specificity for the other and accuracy is the same for both. Overall, the model identified relevant pages more reliably than irrelevant ones, with the most errors being where irrelevant pages were labeled as relevant.
