@@ -15,18 +15,23 @@ load("../results/log_pc_metrics.RData")
 
 ### HTML scraping
 
-We created a principal component logistic regression model trained on a corpus with only paragraph text and headers from claims documents to compare against a similar model trained only on paragraph text. We found that the model had an improved ROC AUC score (0.8935) compared to the model trained with only paragraph text (0.8847), but reduced the raw accuracy significantly (0.8364) compared to the paragraphs only model (0.8528).
+We created a principal component logistic regression model trained on a corpus with only paragraph text and headers from claims documents to compare against a similar model trained only on paragraph text.he paragraphs-and-headers model had a slightly higher test ROC AUC (0.8941 vs. 0.8846) but a lower test accuracy (0.8364 vs. 0.8528). Ten-fold cross-validation on the training set did not show a consistent difference between the two. Mean CV accuracy was 0.8195 (SD 0.0250) for paragraphs and headers and 0.8166 (SD 0.0242) for paragraphs only. Mean CV ROC AUC was 0.8855 (SD 0.0201) for paragraphs and headers and 0.8760 (SD 0.0245) for paragraphs only. These gaps are much smaller than the fold-to-fold variation, so the models perform comparably.
 
 ### Bigrams
 
-Another model, which was trained on the output principal components of another model trained on bigram tokenized data of paragraph text and headers as well as the log-odds-ratios of the previous unigram model, tied with the previous unigram model trained on paragraphs and headers in the accuracy score (0.8364) but improved in the ROC AUC score (0.8988). Its sensitivity and specificity score was lower than the unigram model that was trained on only paragraph text (0.8498 vs 0.8592 and 0.8233 vs 0.8465 for sensitivity and specificity respectively). In comparison to the unigram model trained on paragraph and header text, the bigram model had a lower sensitivity score (0.8498 vs 0.8545) and a higher specificity score (0.8233 vs 0.8186). This indicates that the bigram model is more conservative in flagging relevant claims compared to both unigram models, and misclassifies less irrelevant claims than the unigram model trained with paragraphs and headers.
-
 The SVD logistic regression model that scored the highest accuracy was the model trained only with paragraph text (0.8528), but was beat by the bigram model trained on paragraph and header text in terms of ROC AUC score (0.8988). Thus, the inclusion of headers and bigrams captured additional information to better classify between irrelevant and relevant claims at the cost of raw accuracy.
+
+Another model was trained on the principal components of bigram-tokenized paragraph and header text, together with the log-odds from the unigram paragraphs-and-headers model. It tied that unigram model on test accuracy (0.8364) and had a higher test ROC AUC (0.8988 vs. 0.8941). Compared with the paragraphs-only model, it had lower sensitivity (0.8498 vs. 0.8592) and lower specificity (0.8233 vs. 0.8465). Compared with the paragraphs-and-headers model, it had slightly lower sensitivity (0.8498 vs. 0.8545) and slightly higher specificity (0.8233 vs. 0.8186). These sensitivity and specificity differences are marginally small and do not establish that the stacked model is somewhat more conservative in flagging relevant claims than the unigram models.
+
+The bigram-only model performed worst on every metric (test accuracy 0.7967, ROC AUC 0.8642; CV accuracy 0.7921, CV ROC AUC 0.8474). Its principal component selection reached 642 in order to explain 70% of the variance which reflects the larger vocabulary from the unique word paired tokens.
+
+The stacked model’s CV scores (accuracy 0.8697, ROC AUC 0.9338) are higher than its test scores and should not be compared directly with the other models’ CV scores. Its training-set log-odds come from a unigram model fit on the same rows used for CV, so the CV estimate is optimistic. The test metrics are unaffected by this and are the fair basis for comparison.
+
+On the test set, the paragraphs-only model had the highest accuracy (0.8528), and the stacked model had the highest ROC AUC (0.8988). The results therefore suggest that headers and bigram information may add some discriminative ability, but we cannot conclude that the improvement is statistically meaningful.
 
 ### Table for tasks 1 and 2
 
 ```{r}
-
 log_pc_metrics |>
   rename("ROC AUC" = roc_auc,
          "Accuracy" = accuracy,
@@ -44,11 +49,11 @@ We trained a feedforward neural network to predict whether a webpage contained r
 
 We tested and evaluated different hidden-layer widths, regularization strengths, and training durations (number of training epochs) on a validation set. The selected configuration achieved 83.38% validation accuracy after five epochs, compared with 80.76% for the initial 100-epoch run. We then refit the TF-IDF transformation and trained the selected network for five epochs on all 1,712 training pages.
 
-On the same 428 held-out pages used in Task 1, the network correctly classified 358 pages (83.64%), compared with 354 (82.71%) for the principal component logistic regression model. Additionally, ROC AUC increased from 0.8934 to 0.9010. The network met the Task 3 accuracy target, with a gain of 0.93 percentage points on this test split. Below is a table which compares model metrics.
+On the same 428 held-out pages used in Task 1, the network correctly classified 358 pages (83.64%), which tied with the principal component logistic regression model. Additionally, ROC AUC increased from 0.8941 to 0.9010. Sensitivity was slightly lower (0.8451 vs 0.8545) and specificity was slightly higher (0.8279 vs 0.8186). The network met the Task 3 accuracy target, meeting the exact accuracy of the Task 1 principal component logistic regression model. Below is a table which compares model metrics.
 
 |             | Task 1 PC Logistic Regression | Task 3 Neural Network |
 |-------------|-------------------------------|-----------------------|
-| Accuracy    | 0.8271                        | 0.8364                |
-| AUC ROC     | 0.8934                        | 0.9010                |
-| Sensitivity | 0.8404                        | 0.8451                |
-| Specificity | 0.8140                        | 0.8279                |
+| Accuracy    | 0.8364                        | 0.8364                |
+| AUC ROC     | 0.8941                        | 0.9010                |
+| Sensitivity | 0.8545                        | 0.8451                |
+| Specificity | 0.8186                        | 0.8279                |
