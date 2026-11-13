@@ -1,8 +1,17 @@
 ---
 title: "Summary of exploratory tasks"
-author: 'YOUR NAMES HERE'
+author: 'Arden Chen, Felix Ngo, Emma Nguyen, Lily Nishizawa'
 date: today
 ---
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(kableExtra)
+library(tidyverse)
+library(dplyr)
+load("../results/log_pc_metrics.RData")
+```
+
 
 ### HTML scraping
 
@@ -13,6 +22,21 @@ We created a principal component logistic regression model trained on a corpus w
 Another model, which was trained on the output principal components of another model trained on bigram tokenized data of paragraph text and headers as well as the log-odds-ratios of the previous unigram model, tied with the previous unigram model trained on paragraphs and headers in the accuracy score (0.8364) but improved in the ROC AUC score (0.8988). Its sensitivity and specificity score was lower than the unigram model that was trained on only paragraph text (0.8498 vs 0.8592 and 0.8233 vs 0.8465 for sensitivity and specificity respectively). In comparison to the unigram model trained on paragraph and header text, the bigram model had a lower sensitivity score (0.8498 vs 0.8545) and a higher specificity score (0.8233 vs 0.8186). This indicates that the bigram model is more conservative in flagging relevant claims compared to both unigram models, and misclassifies less irrelevant claims than the unigram model trained with paragraphs and headers.
 
 The SVD logistic regression model that scored the highest accuracy was the model trained only with paragraph text (0.8528), but was beat by the bigram model trained on paragraph and header text in terms of ROC AUC score (0.8988). Thus, the inclusion of headers and bigrams captured additional information to better classify between irrelevant and relevant claims at the cost of raw accuracy.
+
+### Table for tasks 1 and 2
+
+```{r}
+
+log_pc_metrics |>
+  rename("ROC AUC" = roc_auc,
+         "Accuracy" = accuracy,
+         "Dataset" = dataset,
+         "Sensitivity" = sensitivity,
+         "Specificity" = specificity) |>
+  kable(row.names = FALSE) |>
+  kable_styling()
+```
+
 
 ### Neural net
 
