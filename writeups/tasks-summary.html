@@ -6,7 +6,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
-<meta name="author" content="YOUR NAMES HERE">
+<meta name="author" content="Arden Chen, Felix Ngo, Emma Nguyen, Lily Nishizawa">
 <meta name="dcterms.date" content="2026-11-12">
 
 <title>Summary of exploratory tasks</title>
@@ -42,6 +42,10 @@ ul.task-list li input[type="checkbox"] {
 <script src="tasks-summary_files/libs/bootstrap/bootstrap.min.js"></script>
 <link href="tasks-summary_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
 <link href="tasks-summary_files/libs/bootstrap/bootstrap-215b371544c282197b31c8aa00ce3677.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script src="tasks-summary_files/libs/kePrint-0.0.1/kePrint.js"></script>
+
+<link href="tasks-summary_files/libs/lightable-0.0.1/lightable.css" rel="stylesheet">
+
 
 
 </head>
@@ -64,7 +68,7 @@ ul.task-list li input[type="checkbox"] {
     <div>
     <div class="quarto-title-meta-heading">Author</div>
     <div class="quarto-title-meta-contents">
-             <p>YOUR NAMES HERE </p>
+             <p>Arden Chen, Felix Ngo, Emma Nguyen, Lily Nishizawa </p>
           </div>
   </div>
     
@@ -91,6 +95,54 @@ ul.task-list li input[type="checkbox"] {
 <h3 class="anchored" data-anchor-id="bigrams">Bigrams</h3>
 <p>Another model, which was trained on the output principal components of another model trained on bigram tokenized data of paragraph text and headers as well as the log-odds-ratios of the previous unigram model, tied with the previous unigram model trained on paragraphs and headers in the accuracy score (0.8364) but improved in the ROC AUC score (0.8988). Its sensitivity and specificity score was lower than the unigram model that was trained on only paragraph text (0.8498 vs 0.8592 and 0.8233 vs 0.8465 for sensitivity and specificity respectively). In comparison to the unigram model trained on paragraph and header text, the bigram model had a lower sensitivity score (0.8498 vs 0.8545) and a higher specificity score (0.8233 vs 0.8186). This indicates that the bigram model is more conservative in flagging relevant claims compared to both unigram models, and misclassifies less irrelevant claims than the unigram model trained with paragraphs and headers.</p>
 <p>The SVD logistic regression model that scored the highest accuracy was the model trained only with paragraph text (0.8528), but was beat by the bigram model trained on paragraph and header text in terms of ROC AUC score (0.8988). Thus, the inclusion of headers and bigrams captured additional information to better classify between irrelevant and relevant claims at the cost of raw accuracy.</p>
+</section>
+<section id="table-for-tasks-1-and-2" class="level3">
+<h3 class="anchored" data-anchor-id="table-for-tasks-1-and-2">Table for tasks 1 and 2</h3>
+<div class="cell">
+<div class="cell-output-display">
+<table class="table caption-top table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: left;" data-quarto-table-cell-role="th">Dataset</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Accuracy</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">ROC AUC</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Sensitivity</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Specificity</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Only Paragraphs</td>
+<td style="text-align: right;">0.8528</td>
+<td style="text-align: right;">0.8846</td>
+<td style="text-align: right;">0.8592</td>
+<td style="text-align: right;">0.8465</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Bigrams pcs with unigram log-odds</td>
+<td style="text-align: right;">0.8364</td>
+<td style="text-align: right;">0.8988</td>
+<td style="text-align: right;">0.8498</td>
+<td style="text-align: right;">0.8233</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Paragraphs and Headers</td>
+<td style="text-align: right;">0.8364</td>
+<td style="text-align: right;">0.8941</td>
+<td style="text-align: right;">0.8545</td>
+<td style="text-align: right;">0.8186</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Bigram model</td>
+<td style="text-align: right;">0.7967</td>
+<td style="text-align: right;">0.8642</td>
+<td style="text-align: right;">0.7981</td>
+<td style="text-align: right;">0.7953</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 </section>
 <section id="neural-net" class="level3">
 <h3 class="anchored" data-anchor-id="neural-net">Neural net</h3>
