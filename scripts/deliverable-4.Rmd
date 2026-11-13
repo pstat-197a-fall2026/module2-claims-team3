@@ -1,0 +1,16 @@
+---
+title: "Deliverable 4 Write Up"
+author: "Emma Nguyen and Lily Nishizawa"
+date: "2026-11-13"
+output: pdf_document
+---
+
+### BINARY
+
+\<binary\>
+
+### MULTI
+
+\<multi\>
+
+### 
